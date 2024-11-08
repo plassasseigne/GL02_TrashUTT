@@ -4,4 +4,5 @@ var Command = {
     return true
   }
 }
-module.exports
+
+module.exports = Command;
