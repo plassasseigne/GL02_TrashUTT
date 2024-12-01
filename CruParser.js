@@ -92,4 +92,18 @@ CruParser.prototype.getAvailableRooms = function (hours) {
   return [...new Set(availableRooms)]; // Supprimer les doublons
 };
 
+CruParser.prototype.getRoomAvailability = function (room) {
+  const availability = [];
+
+  this.parsedData.forEach((edt) => {
+    edt.sessions.forEach((session) => {
+      if (session[5] === room) {
+        availability.push(session[3]); // Ajouter le créneau horaire si la salle correspond
+      }
+    });
+  });
+
+  return availability;
+};
+
 module.exports = CruParser;

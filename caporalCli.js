@@ -91,6 +91,31 @@ cli
       logger.info("Available rooms:");
       availableRooms.forEach((room) => logger.info(room));
     }
+  })
+
+  .command("availability", "Check the availability of a room")
+  .argument("<room>", "The name of the room to check availability for")
+  .argument("<file>", "The .cru file to parse")
+  .action(({ args, logger }) => {
+    const room = args.room;
+    const file = args.file;
+
+    // Vérifier si le fichier existe
+    if (!fs.existsSync(file)) {
+      return logger.error(`File not found: ${file}`);
+    }
+
+    // Charger les données et vérifier la disponibilité de la salle
+    const parser = new CruParser(false, false);
+    parser.parse(fs.readFileSync(file, "utf8"));
+
+    const availability = parser.getRoomAvailability(room);
+    if (availability.length === 0) {
+      logger.info(`No availability found for room: ${room}`);
+    } else {
+      logger.info(`Availability for room ${room}:`);
+      availability.forEach((slot) => logger.info(slot));
+    }
   });
 
 cli.run(process.argv.slice(2));
