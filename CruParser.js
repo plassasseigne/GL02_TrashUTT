@@ -74,4 +74,22 @@ CruParser.prototype.session = function (line) {
   return [id, group, participants, time, subgroup, room];
 };
 
+// Récupérer les salles disponibles pour une plage horaire donnée
+CruParser.prototype.getAvailableRooms = function (hours) {
+  const [start, end] = hours.split("-");
+  const availableRooms = [];
+
+  this.parsedData.forEach((edt) => {
+    edt.sessions.forEach((session) => {
+      const sessionTime = session[3];
+      const [sessionStart, sessionEnd] = sessionTime.split("-");
+      if (end <= sessionStart || start >= sessionEnd) {
+        availableRooms.push(session[5]); // Ajouter la salle si elle est disponible
+      }
+    });
+  });
+
+  return [...new Set(availableRooms)]; // Supprimer les doublons
+};
+
 module.exports = CruParser;

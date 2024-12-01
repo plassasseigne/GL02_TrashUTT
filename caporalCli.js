@@ -7,6 +7,7 @@ const cli = require("@caporal/core").default;
 cli
   .version("cru-parser-cli")
   .version("0.1")
+  // Read and parse a single .cru file
   .command(
     "readAllEdt",
     "Read and parse all .cru files from the given directory"
@@ -56,6 +57,40 @@ cli
         }
       });
     });
+  })
+
+  // Check for available rooms in the given time slot
+  .command("getroom", "Get available rooms for a given time slot")
+  .argument("<hours>", "The time slot to check for available rooms")
+  .argument("<file>", "The .cru file to read")
+  .action(({ args, logger }) => {
+    const hours = args.hours;
+    const file = args.file;
+
+    // Check if the time slot is in the correct format
+    const hoursRegex = /^\d{1,2}:\d{2}-\d{1,2}:\d{2}$/;
+    if (!hoursRegex.test(hours)) {
+      return logger.error(
+        "SRUPC_2_E1: Invalid time slot format. Expected format: HH:MM-HH:MM"
+      );
+    }
+
+    // Check if the file exists
+    if (!fs.existsSync(file)) {
+      return logger.error(`The file ${file} does not exist.`);
+    }
+
+    // Load the .cru file and check for available rooms
+    const parser = new CruParser(false, false);
+    parser.parse(fs.readFileSync(file, "utf8")); // Make sure to change the path to the .cru file
+
+    const availableRooms = parser.getAvailableRooms(hours);
+    if (availableRooms.length === 0) {
+      logger.info("No available rooms found for the given time slot.");
+    } else {
+      logger.info("Available rooms:");
+      availableRooms.forEach((room) => logger.info(room));
+    }
   });
 
 cli.run(process.argv.slice(2));
