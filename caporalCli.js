@@ -56,6 +56,79 @@ cli
         }
       });
     });
+  })
+  .command("checkRoom")
+  .argument("<name>", "The course that we want to know the room")
+  .action(({ args, logger }) => {
+    const courseName = args.name.toUpperCase();
+    const dataDir = "data";
+
+    // Get the first letter of the course name
+    const firstLetter = courseName[0];
+
+    // Determine the folder based on letter pair
+    const letterPairs = fs
+      .readdirSync(dataDir)
+      .filter((folder) => /^[A-Z]{2}$/.test(folder)); // Find folders matching two-letter pattern
+
+    let targetFolder = null;
+    for (const pair of letterPairs) {
+      if (pair.includes(firstLetter)) {
+        targetFolder = path.join(dataDir, pair);
+        break;
+      }
+    }
+
+    if (!targetFolder) {
+      return logger.error(
+        `No folder found for courses starting with '${firstLetter}'.`
+      );
+    }
+
+    if (!fs.existsSync(targetFolder)) {
+      return logger.error(`The folder ${targetFolder} does not exist.`);
+    }
+
+    // Expect only one .cru file in the folder
+    const cruFile = fs
+      .readdirSync(targetFolder)
+      .find((file) => file.endsWith(".cru"));
+
+    if (!cruFile) {
+      return logger.info(`No .cru file found in folder ${targetFolder}.`);
+    }
+
+    const filePath = path.join(targetFolder, cruFile);
+
+    fs.readFile(filePath, "utf8", (err, data) => {
+      if (err) {
+        return logger.warn(`Error reading file ${cruFile}: ${err.message}`);
+      }
+
+      const parser = new CruParser(false, false); // Disable tokenization and symbol logging for this command
+      parser.parse(data);
+
+      let found = false;
+
+      parser.parsedData.forEach((edt) => {
+        if (edt.name === courseName) {
+          const listRoom = new Set();
+          edt.sessions.forEach((session) => {
+            if (!listRoom.has(session[5])) {
+              listRoom.add(session[5]);
+              found = true;
+              logger.info(`Course: ${session.name}`);
+              logger.info(`Room: ${session.room}`);
+              logger.info(`Capacity: ${session.capacity}`);
+            }
+          });
+        }
+      });
+
+      if (!found) {
+        logger.info(`Course ${courseName} not found in ${filePath}.`);
+      }
+    });
   });
 
 cli.run(process.argv.slice(2));
