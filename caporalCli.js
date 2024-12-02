@@ -7,13 +7,6 @@ const cli = require("@caporal/core").default;
 cli
   .version("cru-parser-cli")
   .version("0.1")
-  .option("-h, --help", "Display help for command")
-  .on("--help", function () {
-    console.log();
-    console.log("Examples:");
-    console.log("  $ cru-parser-cli readAllEdt data");
-    console.log("  $ cru-parser-cli checkRoom MATH101");
-  })
   .command(
     "readAllEdt",
     "Read and parse all .cru files from the given directory"
@@ -64,9 +57,8 @@ cli
       });
     });
   })
-  .command("checkRoom")
+  .command("checkRoom", "Check the room and the capacity of a course")
   .argument("<name>", "The course that we want to know the room")
-  .description()
   .action(({ args, logger }) => {
     const courseName = args.name.toUpperCase();
     const dataDir = "data";
