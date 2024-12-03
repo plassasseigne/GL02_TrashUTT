@@ -16,7 +16,7 @@ describe("Program Semantic testing of EDT", function () {
   });
 
   it("can add a new session", function () {
-    const session2 = new Session(2, "TD", 15, "14:00-15:30", "B", "B005");
+    const session2 = new Session(2, "D1", 15, "J 14:00-15:30", "B", "B005");
 
     this.edt.sessions.push(session2);
 
