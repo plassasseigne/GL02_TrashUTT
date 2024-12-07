@@ -4,6 +4,25 @@ const CruParser = require("./CruParser.js");
 
 const cli = require("@caporal/core").default;
 
+// Helper function to recursively find .cru files
+function findCruFiles(dir, fileList = []) {
+  let cruFiles = [];
+  const files = fs.readdirSync(dir);
+
+  files.forEach((file) => {
+    const filePath = path.join(dir, file);
+    const stat = fs.statSync(filePath);
+
+    if (stat.isDirectory()) {
+      cruFiles = cruFiles.concat(findCruFiles(filePath, fileList));
+    } else if (file.endsWith(".cru")) {
+      cruFiles.push(filePath);
+    }
+  });
+
+  return cruFiles;
+}
+
 cli
   .version("cru-parser-cli")
   .version("0.1")
@@ -133,12 +152,11 @@ cli
   })
 
   // Check for available rooms in the given time slot
-  .command("getroom", "Get available rooms for a given time slot")
+  .command("getAvailableRooms", "Get available rooms for a given time slot")
   .argument("<hours>", "The time slot to check for available rooms")
-  .argument("<file>", "The .cru file to read")
   .action(({ args, logger }) => {
     const hours = args.hours;
-    const file = args.file;
+    const dataDir = "data";
 
     // Check if the time slot is in the correct format
     const hoursRegex = /^\d{1,2}:\d{2}-\d{1,2}:\d{2}$/;
@@ -148,25 +166,40 @@ cli
       );
     }
 
-    // Check if the file exists
-    if (!fs.existsSync(file)) {
-      return logger.error(`The file ${file} does not exist.`);
+    // Get all .cru files in the data directory and its subdirectories
+    const files = findCruFiles(dataDir);
+
+    // Check if there are any .cru files in the directory
+    if (files.length === 0) {
+      return logger.info("No .cru files found in the data directory.");
     }
 
-    // Load the .cru file and check for available rooms
-    const parser = new CruParser(false, false);
-    parser.parse(fs.readFileSync(file, "utf8")); // Make sure to change the path to the .cru file
+    const availableRooms = new Set();
 
-    const availableRooms = parser.getAvailableRooms(hours);
-    if (availableRooms.length === 0) {
+    //process each .cru file
+    files.forEach((filePath) => {
+      logger.info(`Processing file: ${filePath}`);
+
+      const parser = new CruParser(false, false);
+      parser.parse(fs.readFileSync(filePath, "utf8"));
+
+      const rooms = parser.availableRooms(hours);
+      rooms.forEach((room) => availableRooms.add(room));
+    });
+
+    if (availableRooms.size === 0) {
       logger.info("No available rooms found for the given time slot.");
     } else {
-      logger.info("Available rooms:");
-      availableRooms.forEach((room) => logger.info(room));
+      logger.info("Available rooms : ");
+      availableRooms.forEach((room) => {
+        if (room) {
+          logger.info(room);
+        }
+      });
     }
   })
 
-  .command("availability", "Check the availability of a room")
+  .command("getRoomAvailability", "Check the availability of a room")
   .argument("<room>", "The name of the room to check availability for")
   .argument("<file>", "The .cru file to parse")
   .action(({ args, logger }) => {

@@ -91,20 +91,27 @@ CruParser.prototype.subgroup = function (input) {
   return input;
 };
 CruParser.prototype.room = function (input) {
-  return input.split("=")[1].replace("//", "");
+  const index = input.indexOf("S=");
+  if (index !== -1 && input.length >= index + 6) {
+    return input.substring(index + 2, index + 6);
+  }
+  return null;
 };
 
 // Récupérer les salles disponibles pour une plage horaire donnée
-CruParser.prototype.getAvailableRooms = function (hours) {
+CruParser.prototype.availableRooms = function (hours) {
   const [start, end] = hours.split("-");
   const availableRooms = [];
 
   this.parsedData.forEach((edt) => {
     edt.sessions.forEach((session) => {
-      const sessionTime = session[3];
-      const [sessionStart, sessionEnd] = sessionTime.split("-");
-      if (end <= sessionStart || start >= sessionEnd) {
-        availableRooms.push(session[5]); // Ajouter la salle si elle est disponible
+      const [sessionStart, sessionEnd] = session.time.split("-");
+      if (
+        (end <= sessionStart || start >= sessionEnd) &&
+        session.capacity !== "0" &&
+        !availableRooms.includes(session.room)
+      ) {
+        availableRooms.push(session.room);
       }
     });
   });
