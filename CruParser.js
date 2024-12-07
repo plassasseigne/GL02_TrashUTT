@@ -1,4 +1,5 @@
 const EDT = require("./edt"); // Assurez-vous d'importer EDT ici
+const Session = require("./Session");
 
 var CruParser = function (sTokenize, sParsedSymb) {
   this.parsedData = []; // Liste des sessions analysées
@@ -62,16 +63,35 @@ CruParser.prototype.listEdt = function (input) {
 };
 
 // Analyse une activité dans le format "X,X,P=X,H=X X:XX-X:XX,XX,S=XXX//"
-CruParser.prototype.session = function (line) {
-  var parts = line.split(",");
-  var id = parts[0]; // ID de l'activité
-  var group = parts[1]; // Groupe
-  var participants = parts[2].split("=")[1]; // Nombre de participants
-  var time = parts[3].split("=")[1]; // Jour Horaire
-  var subgroup = parts[4]; // Sous-groupe
-  var room = parts[5].split("=")[1].replace("//", ""); // Salle
-
-  return [id, group, participants, time, subgroup, room];
+CruParser.prototype.session = function (input) {
+  var parts = input.split(",");
+  let session = new Session(
+    this.id(parts[0]),
+    this.sessionType(parts[1]),
+    this.capacity(parts[2]),
+    this.time(parts[3]),
+    this.subgroup(parts[4]),
+    this.room(parts[5])
+  );
+  return session;
+};
+CruParser.prototype.id = function (input) {
+  return input;
+};
+CruParser.prototype.sessionType = function (input) {
+  return input;
+};
+CruParser.prototype.capacity = function (input) {
+  return input.split("=")[1];
+};
+CruParser.prototype.time = function (input) {
+  return input.split("=")[1];
+};
+CruParser.prototype.subgroup = function (input) {
+  return input;
+};
+CruParser.prototype.room = function (input) {
+  return input.split("=")[1].replace("//", "");
 };
 
 // Récupérer les salles disponibles pour une plage horaire donnée
