@@ -160,7 +160,6 @@ CruParser.prototype.getRoomAvailability = function (room) {
       }
     }
   });
-  console.log(availability);
 
   return availability;
 };
