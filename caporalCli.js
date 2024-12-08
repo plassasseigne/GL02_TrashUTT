@@ -152,7 +152,7 @@ cli
   })
 
   // Check for available rooms in the given time slot
-  .command("getAvailableRooms", "Get available rooms for a given time slot")
+  .command("getroom", "Get available rooms for a given time slot")
   .argument("<hours>", "The time slot to check for available rooms")
   .action(({ args, logger }) => {
     const hours = args.hours;
@@ -199,28 +199,50 @@ cli
     }
   })
 
-  .command("getRoomAvailability", "Check the availability of a room")
+  .command("availability", "Check the availability of a room")
   .argument("<room>", "The name of the room to check availability for")
-  .argument("<file>", "The .cru file to parse")
   .action(({ args, logger }) => {
     const room = args.room;
-    const file = args.file;
+    const dataDir = "data";
 
-    // Vérifier si le fichier existe
-    if (!fs.existsSync(file)) {
-      return logger.error(`File not found: ${file}`);
+    // Check if the room name is in the correct format
+    const roomRegex = /^[A-Z]{1}\d{3}$/;
+    if (!roomRegex.test(room)) {
+      return logger.error(
+        "SRUPC_3_E1: Invalid room format. Expected format: ABC123"
+      );
     }
 
-    // Charger les données et vérifier la disponibilité de la salle
-    const parser = new CruParser(false, false);
-    parser.parse(fs.readFileSync(file, "utf8"));
+    // Get all .cru files in the data directory and its subdirectories
+    const files = findCruFiles(dataDir);
 
-    const availability = parser.getRoomAvailability(room);
+    if (files.length === 0) {
+      return logger.info("No .cru files found in the data directory.");
+    }
+
+    const availability = [];
+    const parser = new CruParser(false, false);
+
+    // Process each .cru file
+    files.forEach((filePath) => {
+      logger.info(`Processing file: ${filePath}`);
+      parser.parse(fs.readFileSync(filePath, "utf8"));
+    });
+
+    availability.push(parser.getRoomAvailability(room));
+
     if (availability.length === 0) {
       logger.info(`No availability found for room: ${room}`);
     } else {
       logger.info(`Availability for room ${room}:`);
-      availability.forEach((slot) => logger.info(slot));
+      availability.forEach((dayAvailability) => {
+        Object.keys(dayAvailability).forEach((day) => {
+          logger.info(`${day}:`);
+          dayAvailability[day].forEach((slot) => {
+            logger.info(`  ${slot.start} - ${slot.end}`);
+          });
+        });
+      });
     }
   });
 

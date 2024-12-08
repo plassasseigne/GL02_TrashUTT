@@ -119,16 +119,48 @@ CruParser.prototype.availableRooms = function (hours) {
   return [...new Set(availableRooms)]; // Supprimer les doublons
 };
 
+// Récupérer la disponibilité d'une salle donnée
 CruParser.prototype.getRoomAvailability = function (room) {
-  const availability = [];
+  const sessions = this.parsedData.flatMap((edt) => edt.sessions); // Assuming sessions are stored in this.parsedData
+  const startHour = "08:00";
+  const endHour = "20:00";
+  const daysOfWeek = ["L", "MA", "ME", "J", "V", "S", "D"];
+  const availability = {};
 
-  this.parsedData.forEach((edt) => {
-    edt.sessions.forEach((session) => {
-      if (session[5] === room) {
-        availability.push(session[3]); // Ajouter le créneau horaire si la salle correspond
-      }
-    });
+  // Initialize availability for each day of the week
+  daysOfWeek.forEach((day) => {
+    availability[day] = [{ start: startHour, end: endHour }];
   });
+
+  // Iterate through sessions and adjust availability
+  sessions.forEach((session) => {
+    if (session.room === room) {
+      const [day, time] = session.time.split(" ");
+      const [sessionStart, sessionEnd] = time.split("-");
+
+      if (availability[day]) {
+        let newAvailability = [];
+
+        availability[day].forEach((slot) => {
+          if (sessionStart >= slot.end || sessionEnd <= slot.start) {
+            // No overlap
+            newAvailability.push(slot);
+          } else {
+            // Overlap exists, split the slot if necessary
+            if (sessionStart > slot.start) {
+              newAvailability.push({ start: slot.start, end: sessionStart });
+            }
+            if (sessionEnd < slot.end) {
+              newAvailability.push({ start: sessionEnd, end: slot.end });
+            }
+          }
+        });
+
+        availability[day] = newAvailability;
+      }
+    }
+  });
+  console.log(availability);
 
   return availability;
 };
