@@ -148,30 +148,40 @@ CruParser.prototype.availableRooms = function (hours) {
     );
   }
 
-  const [start, end] = hours.split("-");
-  const availableRooms = [];
+  const [start, end] = hours.split("-").map((time) => time.replace(":", ""));
+  const daysOfWeek = ["L", "MA", "ME", "J", "V", "S", "D"];
+  const availableRooms = {};
+  daysOfWeek.forEach((day) => {
+    availableRooms[day] = [];
+  });
 
   this.parsedData.forEach((edt) => {
     edt.sessions.forEach((session) => {
-      const [sessionStart, sessionEnd] = session.time.split("-");
+      const [day, time] = session.time.split(" ");
+      const [sessionStart, sessionEnd] = time
+        .split("-")
+        .map((time) => time.replace(":", ""));
       if (
         (end <= sessionStart || start >= sessionEnd) &&
-        session.capacity !== "0" &&
-        !availableRooms.includes(session.room)
+        daysOfWeek.includes(day) &&
+        !availableRooms[day].includes(session.room)
       ) {
-        availableRooms.push(session.room);
+        availableRooms[day].push(session.room);
       }
     });
   });
 
-  console.log([...new Set(availableRooms)]);
-
-  return [...new Set(availableRooms)]; // Supprimer les doublons
+  return availableRooms;
 };
 
 // Récupérer la disponibilité d'une salle donnée
 CruParser.prototype.getRoomAvailability = function (room) {
-  const sessions = this.parsedData.flatMap((edt) => edt.sessions); // Assuming sessions are stored in this.parsedData
+  // Check if the room name is in the correct format
+  const roomRegex = /^[A-Z]{1}\d{3}$/;
+  if (!roomRegex.test(room)) {
+    throw new Error("SRUPC_3_E1: Invalid room format. Expected format: ABC123");
+  }
+  const sessions = this.parsedData.flatMap((edt) => edt.sessions);
   const startHour = "08:00";
   const endHour = "20:00";
   const daysOfWeek = ["L", "MA", "ME", "J", "V", "S", "D"];
