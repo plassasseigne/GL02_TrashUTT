@@ -100,6 +100,13 @@ CruParser.prototype.room = function (input) {
 
 // Récupérer les salles disponibles pour une plage horaire donnée
 CruParser.prototype.availableRooms = function (hours) {
+  const hoursRegex = /^\d{1,2}:\d{2}-\d{1,2}:\d{2}$/;
+  if (!hoursRegex.test(hours)) {
+    throw new Error(
+      "SRUPC_2_E1: Invalid time slot format. Expected format: HH:MM-HH:MM"
+    );
+  }
+
   const [start, end] = hours.split("-");
   const availableRooms = [];
 
@@ -115,6 +122,8 @@ CruParser.prototype.availableRooms = function (hours) {
       }
     });
   });
+
+  console.log([...new Set(availableRooms)]);
 
   return [...new Set(availableRooms)]; // Supprimer les doublons
 };

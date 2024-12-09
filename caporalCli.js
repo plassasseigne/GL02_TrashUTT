@@ -158,14 +158,6 @@ cli
     const hours = args.hours;
     const dataDir = "data";
 
-    // Check if the time slot is in the correct format
-    const hoursRegex = /^\d{1,2}:\d{2}-\d{1,2}:\d{2}$/;
-    if (!hoursRegex.test(hours)) {
-      return logger.error(
-        "SRUPC_2_E1: Invalid time slot format. Expected format: HH:MM-HH:MM"
-      );
-    }
-
     // Get all .cru files in the data directory and its subdirectories
     const files = findCruFiles(dataDir);
 
