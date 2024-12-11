@@ -91,7 +91,78 @@ CruParser.prototype.subgroup = function (input) {
   return input;
 };
 CruParser.prototype.room = function (input) {
-  return input.split("=")[1].replace("//", "");
+  const index = input.indexOf("S=");
+  if (index !== -1 && input.length >= index + 6) {
+    return input.substring(index + 2, index + 6);
+  }
+  return null;
+};
+
+// Récupérer les salles disponibles pour une plage horaire donnée
+CruParser.prototype.availableRooms = function (hours) {
+  const [start, end] = hours.split("-");
+  const availableRooms = [];
+
+  this.parsedData.forEach((edt) => {
+    edt.sessions.forEach((session) => {
+      const [sessionStart, sessionEnd] = session.time.split("-");
+      if (
+        (end <= sessionStart || start >= sessionEnd) &&
+        session.capacity !== "0" &&
+        !availableRooms.includes(session.room)
+      ) {
+        availableRooms.push(session.room);
+      }
+    });
+  });
+
+  return [...new Set(availableRooms)]; // Supprimer les doublons
+};
+
+// Récupérer la disponibilité d'une salle donnée
+CruParser.prototype.getRoomAvailability = function (room) {
+  const sessions = this.parsedData.flatMap((edt) => edt.sessions); // Assuming sessions are stored in this.parsedData
+  const startHour = "08:00";
+  const endHour = "20:00";
+  const daysOfWeek = ["L", "MA", "ME", "J", "V", "S", "D"];
+  const availability = {};
+
+  // Initialize availability for each day of the week
+  daysOfWeek.forEach((day) => {
+    availability[day] = [{ start: startHour, end: endHour }];
+  });
+
+  // Iterate through sessions and adjust availability
+  sessions.forEach((session) => {
+    if (session.room === room) {
+      const [day, time] = session.time.split(" ");
+      const [sessionStart, sessionEnd] = time.split("-");
+
+      if (availability[day]) {
+        let newAvailability = [];
+
+        availability[day].forEach((slot) => {
+          if (sessionStart >= slot.end || sessionEnd <= slot.start) {
+            // No overlap
+            newAvailability.push(slot);
+          } else {
+            // Overlap exists, split the slot if necessary
+            if (sessionStart > slot.start) {
+              newAvailability.push({ start: slot.start, end: sessionStart });
+            }
+            if (sessionEnd < slot.end) {
+              newAvailability.push({ start: sessionEnd, end: slot.end });
+            }
+          }
+        });
+
+        availability[day] = newAvailability;
+      }
+    }
+  });
+  console.log(availability);
+
+  return availability;
 };
 
 module.exports = CruParser;
