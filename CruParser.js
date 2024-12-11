@@ -39,27 +39,33 @@ CruParser.prototype.parse = function (data) {
 
 // Analyse la liste des sessions
 CruParser.prototype.listEdt = function (input) {
+  // Si l'entrée est une chaîne, on la divise en un tableau
+  if (typeof input === "string") {
+    input = input.split("\n").map((line) => line.trim()); // Supprimer les espaces superflus
+  }
+
   var currentEDT;
   while (input.length > 0) {
     var line = input.shift();
 
     if (line.startsWith("+")) {
-      // Si c'est un nouvel EDT (ligne commence par "+")
+      // Si c'est un nouvel EDT
       if (currentEDT) {
-        this.parsedData.push(currentEDT); // Ajouter l'edt précédent à la liste
+        this.parsedData.push(currentEDT); // Ajouter l'EDT précédent
       }
-      // Commencer une nouvelle session
-      currentEDT = new EDT(line.substring(1), []); // Créer une nouvelle instance EDT
-    } else {
-      // Sinon, analyser les activités de l'EDT courant
+      currentEDT = new EDT(line.substring(1), []); // Créer une nouvelle instance d'EDT
+    } else if (line) {
+      // Si c'est une session
       if (currentEDT) {
-        currentEDT.sessions.push(this.session(line)); // Ajouter la session à la liste de session
+        currentEDT.sessions.push(this.session(line));
       }
     }
   }
   if (currentEDT) {
     this.parsedData.push(currentEDT);
   }
+
+  return this.parsedData[0]; // Retourner uniquement le premier EDT
 };
 
 // Analyse une activité dans le format "X,X,P=X,H=X X:XX-X:XX,XX,S=XXX//"
@@ -79,14 +85,49 @@ CruParser.prototype.id = function (input) {
   return input;
 };
 CruParser.prototype.sessionType = function (input) {
-  return input;
+  const typeList = ["C", "T", "D"];
+  if (typeList.includes(input[0])) {
+    return input;
+  }
+  return "Invalid session type";
 };
 CruParser.prototype.capacity = function (input) {
   return input.split("=")[1];
 };
 CruParser.prototype.time = function (input) {
-  return input.split("=")[1];
+  const dayList = ["L", "MA", "ME", "J", "V", "S", "D"];
+  const regex = /^([A-Z]+) (\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/;
+
+  input = input.split("=")[1];
+  const match = input.match(regex);
+
+  const day = match[1];
+  const startTime = match[2];
+  const endTime = match[3];
+
+  // Vérifier si le jour est valide
+  if (!dayList.includes(day)) {
+    return "Invalid day";
+  }
+
+  const [startHour, startMinute] = startTime.split(":").map(Number);
+  const [endHour, endMinute] = endTime.split(":").map(Number);
+
+  if (
+    startHour < 0 ||
+    startHour > 24 ||
+    endHour < 0 ||
+    endHour > 24 ||
+    startMinute < 0 ||
+    startMinute >= 60 ||
+    endMinute < 0 ||
+    endMinute >= 60
+  ) {
+    return "Invalid time range";
+  }
+  return input;
 };
+
 CruParser.prototype.subgroup = function (input) {
   return input;
 };
@@ -100,28 +141,47 @@ CruParser.prototype.room = function (input) {
 
 // Récupérer les salles disponibles pour une plage horaire donnée
 CruParser.prototype.availableRooms = function (hours) {
-  const [start, end] = hours.split("-");
-  const availableRooms = [];
+  const hoursRegex = /^\d{1,2}:\d{2}-\d{1,2}:\d{2}$/;
+  if (!hoursRegex.test(hours)) {
+    throw new Error(
+      "SRUPC_2_E1: Invalid time slot format. Expected format: HH:MM-HH:MM"
+    );
+  }
+
+  const [start, end] = hours.split("-").map((time) => time.replace(":", ""));
+  const daysOfWeek = ["L", "MA", "ME", "J", "V", "S", "D"];
+  const availableRooms = {};
+  daysOfWeek.forEach((day) => {
+    availableRooms[day] = [];
+  });
 
   this.parsedData.forEach((edt) => {
     edt.sessions.forEach((session) => {
-      const [sessionStart, sessionEnd] = session.time.split("-");
+      const [day, time] = session.time.split(" ");
+      const [sessionStart, sessionEnd] = time
+        .split("-")
+        .map((time) => time.replace(":", ""));
       if (
         (end <= sessionStart || start >= sessionEnd) &&
-        session.capacity !== "0" &&
-        !availableRooms.includes(session.room)
+        daysOfWeek.includes(day) &&
+        !availableRooms[day].includes(session.room)
       ) {
-        availableRooms.push(session.room);
+        availableRooms[day].push(session.room);
       }
     });
   });
 
-  return [...new Set(availableRooms)]; // Supprimer les doublons
+  return availableRooms;
 };
 
 // Récupérer la disponibilité d'une salle donnée
 CruParser.prototype.getRoomAvailability = function (room) {
-  const sessions = this.parsedData.flatMap((edt) => edt.sessions); // Assuming sessions are stored in this.parsedData
+  // Check if the room name is in the correct format
+  const roomRegex = /^[A-Z]{1}\d{3}$/;
+  if (!roomRegex.test(room)) {
+    throw new Error("SRUPC_3_E1: Invalid room format. Expected format: ABC123");
+  }
+  const sessions = this.parsedData.flatMap((edt) => edt.sessions);
   const startHour = "08:00";
   const endHour = "20:00";
   const daysOfWeek = ["L", "MA", "ME", "J", "V", "S", "D"];
@@ -160,7 +220,6 @@ CruParser.prototype.getRoomAvailability = function (room) {
       }
     }
   });
-  console.log(availability);
 
   return availability;
 };

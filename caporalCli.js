@@ -158,14 +158,6 @@ cli
     const hours = args.hours;
     const dataDir = "data";
 
-    // Check if the time slot is in the correct format
-    const hoursRegex = /^\d{1,2}:\d{2}-\d{1,2}:\d{2}$/;
-    if (!hoursRegex.test(hours)) {
-      return logger.error(
-        "SRUPC_2_E1: Invalid time slot format. Expected format: HH:MM-HH:MM"
-      );
-    }
-
     // Get all .cru files in the data directory and its subdirectories
     const files = findCruFiles(dataDir);
 
@@ -174,9 +166,9 @@ cli
       return logger.info("No .cru files found in the data directory.");
     }
 
-    const availableRooms = new Set();
+    const availableRooms = {};
 
-    //process each .cru file
+    // Process each .cru file
     files.forEach((filePath) => {
       logger.info(`Processing file: ${filePath}`);
 
@@ -184,17 +176,23 @@ cli
       parser.parse(fs.readFileSync(filePath, "utf8"));
 
       const rooms = parser.availableRooms(hours);
-      rooms.forEach((room) => availableRooms.add(room));
+      Object.keys(rooms).forEach((day) => {
+        if (!availableRooms[day]) {
+          availableRooms[day] = new Set();
+        }
+        rooms[day].forEach((room) => availableRooms[day].add(room));
+      });
     });
 
-    if (availableRooms.size === 0) {
+    if (Object.keys(availableRooms).length === 0) {
       logger.info("No available rooms found for the given time slot.");
     } else {
-      logger.info("Available rooms : ");
-      availableRooms.forEach((room) => {
-        if (room) {
-          logger.info(room);
-        }
+      logger.info("Available rooms:");
+      Object.keys(availableRooms).forEach((day) => {
+        const rooms = Array.from(availableRooms[day])
+          .filter(Boolean)
+          .join(", ");
+        logger.info(`${day}: ${rooms}`);
       });
     }
   })
@@ -204,14 +202,6 @@ cli
   .action(({ args, logger }) => {
     const room = args.room;
     const dataDir = "data";
-
-    // Check if the room name is in the correct format
-    const roomRegex = /^[A-Z]{1}\d{3}$/;
-    if (!roomRegex.test(room)) {
-      return logger.error(
-        "SRUPC_3_E1: Invalid room format. Expected format: ABC123"
-      );
-    }
 
     // Get all .cru files in the data directory and its subdirectories
     const files = findCruFiles(dataDir);
