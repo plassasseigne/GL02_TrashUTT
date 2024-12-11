@@ -12,6 +12,7 @@
   "dependencies": {
     "@caporal/core": "^3.0.2",
     "colors": "^1.4.0",
+    "ics": "^3.8.1",
     "vega": "^5.17.0",
     "vega-lite": "^4.17.0"
   },
