@@ -1,26 +1,24 @@
 {
-  "name": "vpf-parser-cli",
+  "name": "trash-utt-pgc",
   "version": "1.0.0",
-  "description": "Offer an interface for a recursive descent parser implemented in Javascript for reading and processing the Verbose POI Format (VPF). This format allows to describe any list of Point of Interest (POI) with an associated list of evaluation. The files are in text format and should respect the following grammar.",
-  "main": "caporalCli.js",
+  "description": "Creation of a general course planning system for the Central University of the Republic of Sealand, for the course GL02.",
+  "main": "index.js",
   "scripts": {
-    "test": "jasmine"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "matthieu.tixier@utt.fr",
-  "license": "MIT/BSD",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/plassasseigne/trash-utt-pgc.git"
+  },
+  "author": "paul.lassasseigne@utt.fr",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/plassasseigne/trash-utt-pgc/issues"
+  },
+  "homepage": "https://github.com/plassasseigne/trash-utt-pgc#readme",
   "dependencies": {
-    "@caporal/core": "^3.0.2",
-    "colors": "^1.4.0",
-    "ics": "^3.8.1",
-    "vega": "^5.17.0",
-    "vega-lite": "^4.17.0"
-  },
-  "overrides": {
-    "ajv": "^8.17.1",
-    "whatwg-url": "^14.0.0"
-  },
-  "devDependencies": {
-    "jasmine": "^5.4.0"
+    "@caporal/core": "^2.0.7",
+    "csv-writer": "^1.6.0",
+    "ics": "^3.8.1"
   }
 }
